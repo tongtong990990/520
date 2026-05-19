@@ -63,9 +63,16 @@ export function HeartCatchGame() {
       if (destroyed || !containerRef.current) return;
 
       class MainScene extends Phaser.Scene {
-        puppy!: Phaser.GameObjects.Rectangle;
-        face!: Phaser.GameObjects.Text;
+        puppy!: Phaser.Physics.Arcade.Image;
         boostTimer: Phaser.Time.TimerEvent | null = null;
+
+        preload() {
+          const prefix =
+            typeof window !== "undefined" && window.location.pathname.includes("/520")
+              ? "/520"
+              : "";
+          this.load.image("puppy-game", `${prefix}/assets/puppy/puppy.png`);
+        }
 
         create() {
           const { width, height } = this.scale;
@@ -74,18 +81,15 @@ export function HeartCatchGame() {
           this.time.addEvent({ delay: 1100, loop: true, callback: () => this.spawn("flower") });
           this.time.addEvent({ delay: 1500, loop: true, callback: () => this.spawn("bone") });
 
-          this.puppy = this.add
-            .rectangle(width / 2, height - 48, 56, 40, 0xfff7ef)
-            .setStrokeStyle(3, 0xffb6c8)
+          this.puppy = this.physics.add
+            .image(width / 2, height - 52, "puppy-game")
+            .setDisplaySize(64, 70)
             .setDepth(10);
 
-          this.face = this.add.text(this.puppy.x, this.puppy.y - 8, "🐶", { fontSize: "28px" }).setOrigin(0.5).setDepth(11);
-
-          this.physics.add.existing(this.puppy);
           const body = this.puppy.body as Phaser.Physics.Arcade.Body;
           body.setAllowGravity(false);
           body.setCollideWorldBounds(true);
-          body.setSize(52, 36);
+          body.setSize(56, 48);
           this.physics.world.setBounds(0, 0, width, height);
         }
 
@@ -131,7 +135,6 @@ export function HeartCatchGame() {
           if (c.left) body.setVelocityX(-speed);
           else if (c.right) body.setVelocityX(speed);
           else body.setVelocityX(0);
-          this.face.setPosition(this.puppy.x, this.puppy.y - 8);
         }
       }
 
