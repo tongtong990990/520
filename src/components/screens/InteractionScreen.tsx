@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FloatingHearts } from "@/components/FloatingHearts";
 import { Puppy } from "@/components/Puppy";
 import { SoftGlow } from "@/components/SoftGlow";
@@ -42,9 +42,12 @@ export function InteractionScreen() {
   const { setScreen, setPuppyAction, puppyAction, tapPuppy, kissEasterEggShown, setKissEasterEggShown } =
     useGameStore();
   const [kissToast, setKissToast] = useState(false);
+  const tapCountRef = useRef(0);
 
   const handlePuppyTap = () => {
-    const count = tapPuppy();
+    tapCountRef.current += 1;
+    tapPuppy();
+    const count = tapCountRef.current;
     if (count >= 5 && !kissEasterEggShown) {
       setKissEasterEggShown();
       setKissToast(true);
@@ -92,10 +95,13 @@ export function InteractionScreen() {
         它有好多话想对你说…
       </motion.h2>
 
-      <motion.div
-        className="relative z-10 flex flex-1 flex-col items-center justify-end pb-2"
-        onClick={handlePuppyTap}
-      >
+      <motion.div className="relative z-10 flex flex-1 flex-col items-center justify-end pb-2">
+        <button
+          type="button"
+          onClick={handlePuppyTap}
+          className="rounded-3xl p-2 active:scale-95"
+          aria-label="点击小狗"
+        >
         <AnimatePresence>
           {kissToast && (
             <motion.p
@@ -108,12 +114,14 @@ export function InteractionScreen() {
             </motion.p>
           )}
         </AnimatePresence>
-        <Puppy
-          size={200}
-          action={puppyAction}
-          tongueOut={puppyAction === "tongue" || puppyAction === "idle"}
-          eyesClosed={puppyAction === "spin"}
-        />
+          <Puppy
+            size={200}
+            action={puppyAction}
+            tongueOut={puppyAction === "tongue" || puppyAction === "idle"}
+            eyesClosed={puppyAction === "spin"}
+          />
+        </button>
+        <p className="mb-2 text-center text-xs text-brown-text/50">连点小狗 5 次有惊喜 🐶</p>
       </motion.div>
 
       <motion.div className="relative z-10 space-y-3 px-5 pb-8">

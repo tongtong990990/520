@@ -1,229 +1,189 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Puppy } from "@/components/Puppy";
-import { sfx, vibrate } from "@/lib/sfx";
+import { sfx, unlockAudio, vibrate } from "@/lib/sfx";
 import { useGameStore } from "@/store/gameStore";
 
 const TAP_TARGET = 5;
-const LONG_PRESS_MS = 900;
-const TAP_RESET_MS = 2500;
 
 export function EasterEggScreen() {
-  const [longPressMsg, setLongPressMsg] = useState(false);
-  const [fiveTapMsg, setFiveTapMsg] = useState(false);
   const [tapCount, setTapCount] = useState(0);
-  const [pressing, setPressing] = useState(false);
-
-  const tapCountRef = useRef(0);
-  const tapResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressFiredRef = useRef(false);
-  const blockClickRef = useRef(false);
+  const [revealed, setRevealed] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [longPressMsg, setLongPressMsg] = useState(false);
+  const lastTapAt = useRef(0);
 
   const setScreen = useGameStore((s) => s.setScreen);
   const resetGame = useGameStore((s) => s.resetGame);
   const setPuppyAction = useGameStore((s) => s.setPuppyAction);
-  const puppyAction = useGameStore((s) => s.puppyAction);
 
-  const resetTapCount = useCallback(() => {
-    tapCountRef.current = 0;
-    setTapCount(0);
-  }, []);
+  useEffect(() => {
+    setPuppyAction("idle");
+  }, [setPuppyAction]);
 
-  const registerTap = useCallback(() => {
-    if (fiveTapMsg || longPressMsg) return;
+  const triggerReveal = useCallback(() => {
+    setRevealed(true);
+    setShowModal(true);
+    setPuppyAction("jump");
+    unlockAudio();
+    sfx.bark();
+    vibrate([60, 40, 60]);
+    setTimeout(() => setPuppyAction("idle"), 1000);
+  }, [setPuppyAction]);
 
-    if (tapResetTimer.current) clearTimeout(tapResetTimer.current);
-    tapResetTimer.current = setTimeout(resetTapCount, TAP_RESET_MS);
+  const onTapPuppy = useCallback(() => {
+    if (revealed) return;
 
-    tapCountRef.current += 1;
-    const next = tapCountRef.current;
-    setTapCount(next);
+    const now = Date.now();
+    if (now - lastTapAt.current < 200) return;
+    lastTapAt.current = now;
+
+    unlockAudio();
     sfx.pop();
     setPuppyAction("wag");
-    setTimeout(() => setPuppyAction("idle"), 200);
+    setTimeout(() => setPuppyAction("idle"), 150);
+
+    const next = tapCount + 1;
+    setTapCount(next);
 
     if (next >= TAP_TARGET) {
-      setFiveTapMsg(true);
-      resetTapCount();
-      setPuppyAction("jump");
-      sfx.bark();
-      vibrate([50, 40, 50]);
-      if (tapResetTimer.current) clearTimeout(tapResetTimer.current);
-      setTimeout(() => setPuppyAction("idle"), 900);
+      triggerReveal();
     }
-  }, [fiveTapMsg, longPressMsg, resetTapCount, setPuppyAction]);
+  }, [revealed, tapCount, setPuppyAction, triggerReveal]);
 
-  const handleTap = useCallback(
-    (e: React.MouseEvent | React.TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (blockClickRef.current) return;
-      registerTap();
-    },
-    [registerTap],
-  );
-
-  const startLongPress = useCallback(() => {
-    if (fiveTapMsg) return;
-    longPressFiredRef.current = false;
-    setPressing(true);
-    longPressTimer.current = setTimeout(() => {
-      longPressFiredRef.current = true;
-      blockClickRef.current = true;
-      setPressing(false);
-      setLongPressMsg(true);
-      sfx.heartbeat();
-      setTimeout(() => {
-        blockClickRef.current = false;
-      }, 400);
-    }, LONG_PRESS_MS);
-  }, [fiveTapMsg]);
-
-  const endLongPress = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    setPressing(false);
-  }, []);
+  const onLongPress = useCallback(() => {
+    if (revealed) return;
+    unlockAudio();
+    setLongPressMsg(true);
+    sfx.heartbeat();
+  }, [revealed]);
 
   return (
-    <motion.div className="relative flex h-full flex-col items-center justify-between overflow-hidden bg-gradient-to-b from-[#2a1f3d] to-[#4a3558] px-6 py-8">
-      <div className="pointer-events-none absolute right-8 top-16 h-16 w-10 rounded-full bg-amber-200/25 blur-md" />
-      <div className="pointer-events-none absolute left-4 top-10 flex gap-1 opacity-60">
-        {["🎀", "💕", "✨"].map((e) => (
-          <span key={e} className="text-sm">
-            {e}
-          </span>
-        ))}
-      </div>
-
-      <p className="relative z-10 mt-2 text-center text-sm text-pink-light/90">晚安，好梦呀 🌙</p>
-
-      {/* 彩蛋提示条 */}
-      {!fiveTapMsg && !longPressMsg && (
-        <motion.div
-          className="relative z-20 mx-2 mt-3 w-full max-w-sm rounded-2xl border border-pink-main/40 bg-cream-white/95 px-4 py-3 shadow-lg"
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <p className="text-center font-display text-sm text-heart-red">🎁 隐藏彩蛋</p>
-          <p className="mt-1 text-center text-xs leading-relaxed text-brown-text/80">
-            快速连点小狗 <strong className="text-heart-red">5 次</strong>
-            <br />
-            或 <strong className="text-heart-red">长按</strong> 小狗约 1 秒
-          </p>
-          <motion.div className="mt-3 flex justify-center gap-2">
-            {Array.from({ length: TAP_TARGET }, (_, i) => (
-              <motion.span
-                key={i}
-                className={`h-3 w-3 rounded-full ${
-                  i < tapCount ? "bg-heart-red scale-110" : "bg-pink-main/50"
-                }`}
-                animate={i < tapCount ? { scale: [1, 1.3, 1] } : {}}
-              />
-            ))}
-          </motion.div>
-          {tapCount > 0 && (
-            <p className="mt-2 text-center text-xs font-medium text-heart-red">
-              再点 {TAP_TARGET - tapCount} 下就触发啦 ✨
-            </p>
-          )}
-        </motion.div>
-      )}
-
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
-        <motion.div className="mb-3 min-h-[4rem] w-full px-2 text-center">
-          <AnimatePresence mode="wait">
-            {fiveTapMsg ? (
-              <motion.div
-                key="five-tap"
-                className="relative mx-auto max-w-[300px]"
-                initial={{ scale: 0.8, opacity: 0, y: 12 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-              >
-                <motion.div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl"
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ repeat: Infinity, duration: 1 }}
-                >
-                  💬
-                </motion.div>
-                <p className="rounded-2xl bg-cream-white px-5 py-4 font-display text-xl text-heart-red shadow-lg">
-                  不许抛弃小狗 🥺
-                </p>
-              </motion.div>
-            ) : longPressMsg ? (
-              <motion.p
-                key="long-press"
-                className="rounded-2xl bg-cream-white/95 px-5 py-3 font-display text-base text-brown-text shadow-lg"
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-              >
-                不要丢下小狗好不好 🥺
-              </motion.p>
-            ) : null}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* 可点击小狗区域：onClick 兼容微信 / 手机 */}
-        <motion.button
-          type="button"
-          aria-label="点击或长按小狗触发彩蛋"
-          className="relative rounded-3xl border-2 border-dashed border-pink-main/50 bg-pink-main/20 p-8 outline-none active:scale-[0.98]"
-          onClick={handleTap}
-          onTouchStart={() => startLongPress()}
-          onTouchEnd={() => endLongPress()}
-          onMouseDown={startLongPress}
-          onMouseUp={endLongPress}
-          onMouseLeave={endLongPress}
-          onContextMenu={(e) => e.preventDefault()}
-          animate={
-            pressing
-              ? { scale: 0.97, boxShadow: "0 0 0 4px rgba(255,92,122,0.35)" }
-              : { scale: [1, 1.02, 1] }
-          }
-          transition={
-            pressing
-              ? { duration: 0.15 }
-              : { repeat: Infinity, duration: 2.5, ease: "easeInOut" }
-          }
-        >
-          {pressing && !fiveTapMsg && (
+    <div className="relative flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden bg-gradient-to-b from-[#2a1f3d] to-[#5a3a50]">
+      {/* 全屏彩蛋结果 */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowModal(false)}
+          >
             <motion.div
-              className="pointer-events-none absolute inset-2 rounded-2xl border-2 border-heart-red/60"
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ repeat: Infinity, duration: 0.8 }}
-            />
-          )}
-          <Puppy
-            size={200}
-            eyesClosed={!fiveTapMsg}
-            action={fiveTapMsg ? "jump" : puppyAction}
-            className="pointer-events-none"
-          />
-          {!fiveTapMsg && !longPressMsg && (
-            <motion.p
-              className="pointer-events-none mt-3 text-center text-xs text-white/70"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="w-full max-w-sm rounded-3xl bg-cream-white p-8 text-center shadow-2xl"
+              initial={{ scale: 0.5, rotate: -5 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              👆 点我点我
-            </motion.p>
-          )}
-        </motion.button>
+              <motion.p
+                className="text-5xl"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 1.2 }}
+              >
+                🐶💕
+              </motion.p>
+              <h2 className="mt-4 font-display text-2xl leading-relaxed text-heart-red">
+                不许抛弃小狗！
+              </h2>
+              <p className="mt-3 text-base text-brown-text">我会一直一直陪着琪琪的 🥺</p>
+              <button
+                type="button"
+                className="mt-6 w-full rounded-full bg-gradient-to-r from-pink-main to-heart-red py-3 font-display text-white shadow-cream"
+                onClick={() => setShowModal(false)}
+              >
+                好啦好啦，不会丢下你 ❤️
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {!fiveTapMsg && (
-          <p className="mt-4 rounded-2xl bg-white/15 px-4 py-2 text-sm text-white/85">
-            💭 汪… 好困但好幸福
+      <p className="shrink-0 pt-6 text-center text-sm text-pink-light">晚安，好梦呀 🌙</p>
+
+      {/* 固定可见的彩蛋说明 — 不会被挤出屏幕 */}
+      <motion.div
+        className="mx-4 mt-4 shrink-0 rounded-2xl border-2 border-heart-red/60 bg-cream-white p-4 shadow-lg"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+      >
+        <p className="text-center font-display text-lg text-heart-red">🎁 隐藏彩蛋页</p>
+        <p className="mt-2 text-center text-sm text-brown-text">
+          连点下面大按钮 <span className="font-bold text-heart-red">{TAP_TARGET} 次</span>
+        </p>
+        <div className="mt-3 flex justify-center gap-2">
+          {Array.from({ length: TAP_TARGET }, (_, i) => (
+            <span
+              key={i}
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                i < tapCount ? "bg-heart-red text-white" : "bg-pink-light text-brown-text/50"
+              }`}
+            >
+              {i + 1}
+            </span>
+          ))}
+        </div>
+        {tapCount > 0 && !revealed && (
+          <p className="mt-2 text-center text-sm font-bold text-heart-red">
+            还差 {TAP_TARGET - tapCount} 下！
           </p>
+        )}
+      </motion.div>
+
+      <motion.div className="flex shrink-0 flex-col items-center py-6">
+        <Puppy size={160} eyesClosed={!revealed} action={revealed ? "happy" : "idle"} />
+      </motion.div>
+
+      {/* 超大点击按钮 — 微信最稳 */}
+      <div className="shrink-0 space-y-3 px-6 pb-6">
+        <button
+          type="button"
+          disabled={revealed}
+          onClick={onTapPuppy}
+          className="w-full rounded-3xl border-4 border-heart-red bg-gradient-to-b from-pink-main to-heart-red py-6 font-display text-xl text-white shadow-lg active:scale-95 disabled:opacity-50"
+        >
+          {revealed ? "彩蛋已解锁 ✨" : `👆 点我 (${tapCount}/${TAP_TARGET})`}
+        </button>
+
+        <button
+          type="button"
+          disabled={revealed}
+          onMouseDown={() => {
+            const t = setTimeout(onLongPress, 800);
+            (window as Window & { __lp?: ReturnType<typeof setTimeout> }).__lp = t;
+          }}
+          onMouseUp={() => {
+            const w = window as Window & { __lp?: ReturnType<typeof setTimeout> };
+            if (w.__lp) clearTimeout(w.__lp);
+          }}
+          onTouchStart={() => {
+            const t = setTimeout(onLongPress, 800);
+            (window as Window & { __lp?: ReturnType<typeof setTimeout> }).__lp = t;
+          }}
+          onTouchEnd={() => {
+            const w = window as Window & { __lp?: ReturnType<typeof setTimeout> };
+            if (w.__lp) clearTimeout(w.__lp);
+          }}
+          className="w-full rounded-2xl border border-white/30 bg-white/10 py-3 text-sm text-white/90 active:bg-white/20"
+        >
+          或长按此按钮 0.8 秒 → 另一句悄悄话
+        </button>
+
+        {longPressMsg && !revealed && (
+          <motion.p
+            className="rounded-2xl bg-cream-white px-4 py-3 text-center font-display text-heart-red"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            不要丢下小狗好不好 🥺
+          </motion.p>
         )}
       </div>
 
-      <motion.div className="relative z-10 w-full pb-2 text-center">
+      <div className="shrink-0 pb-6 text-center">
         <button
           type="button"
           onClick={() => {
@@ -234,7 +194,7 @@ export function EasterEggScreen() {
         >
           再看一遍
         </button>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
