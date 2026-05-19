@@ -7,6 +7,8 @@ interface LongPressZoneProps {
   children: ReactNode;
   durationMs?: number;
   onLongPress: () => void;
+  /** 短按/快速点击（未达到长按时长） */
+  onQuickTap?: () => void;
   className?: string;
   hint?: string;
 }
@@ -15,11 +17,14 @@ export function LongPressZone({
   children,
   durationMs = 800,
   onLongPress,
+  onQuickTap,
   className = "",
   hint,
 }: LongPressZoneProps) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressingRef = useRef(false);
+  const pressStartRef = useRef(0);
+  const longPressFiredRef = useRef(false);
   const [pressing, setPressing] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -38,8 +43,10 @@ export function LongPressZone({
       e.preventDefault();
       clear();
       pressingRef.current = true;
+      longPressFiredRef.current = false;
+      pressStartRef.current = Date.now();
       setPressing(true);
-      const start = Date.now();
+      const start = pressStartRef.current;
       const tick = () => {
         if (!pressingRef.current) return;
         setProgress(Math.min((Date.now() - start) / durationMs, 1));
@@ -48,6 +55,7 @@ export function LongPressZone({
       requestAnimationFrame(tick);
       timerRef.current = setTimeout(() => {
         if (!pressingRef.current) return;
+        longPressFiredRef.current = true;
         onLongPress();
         clear();
       }, durationMs);
@@ -74,6 +82,10 @@ export function LongPressZone({
           e.currentTarget.releasePointerCapture(e.pointerId);
         } catch {
           /* ignore */
+        }
+        const elapsed = Date.now() - pressStartRef.current;
+        if (!longPressFiredRef.current && elapsed < durationMs) {
+          onQuickTap?.();
         }
         clear();
       }}
