@@ -148,7 +148,7 @@ export function ConfessionScreen() {
           )}
         </AnimatePresence>
         <Puppy size={130} className="-mb-6" action={puppyAction} />
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
