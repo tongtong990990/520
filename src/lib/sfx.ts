@@ -4,9 +4,26 @@ import { Howl } from "howler";
 
 let muted = false;
 let audioCtx: AudioContext | null = null;
+let unlocked = false;
+
+/** 微信 / 手机必须在用户点击时同步调用 */
+export function unlockAudio(): boolean {
+  if (muted || typeof window === "undefined") return false;
+  try {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === "suspended") {
+      void audioCtx.resume();
+    }
+    unlocked = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function getCtx(): AudioContext | null {
   if (muted || typeof window === "undefined") return null;
+  if (!unlocked) unlockAudio();
   try {
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === "suspended") void audioCtx.resume();
@@ -35,7 +52,7 @@ function tone(
     osc.frequency.exponentialRampToValueAtTime(Math.max(pitchEnd, 40), t + duration);
   }
   gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(vol, t + 0.02);
+  gain.gain.linearRampToValueAtTime(vol, t + 0.015);
   gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
   osc.connect(gain);
   gain.connect(ctx.destination);
@@ -43,11 +60,11 @@ function tone(
   osc.stop(t + duration + 0.05);
 }
 
-function noiseBurst(duration: number, vol = 0.08, when = 0) {
+function noiseBurst(duration: number, vol = 0.1, when = 0) {
   const ctx = getCtx();
   if (!ctx) return;
   const t = ctx.currentTime + when;
-  const bufferSize = Math.floor(ctx.sampleRate * duration);
+  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) {
@@ -57,8 +74,7 @@ function noiseBurst(duration: number, vol = 0.08, when = 0) {
   src.buffer = buffer;
   const filter = ctx.createBiquadFilter();
   filter.type = "bandpass";
-  filter.frequency.value = 800;
-  filter.Q.value = 0.8;
+  filter.frequency.value = 900;
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(vol, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
@@ -69,37 +85,36 @@ function noiseBurst(duration: number, vol = 0.08, when = 0) {
   src.stop(t + duration);
 }
 
-/** 可爱小狗「汪」— 三音节 woof */
+/** 可爱「汪汪」 */
 function playWang(variant: "short" | "happy" | "loud" = "short") {
-  const ctx = getCtx();
-  if (!ctx) return;
+  unlockAudio();
+  const vol = variant === "loud" ? 0.32 : variant === "happy" ? 0.26 : 0.22;
 
-  const vol = variant === "loud" ? 0.28 : variant === "happy" ? 0.24 : 0.2;
+  tone(300, 0.11, "sawtooth", vol * 0.75, 0, 160);
+  noiseBurst(0.07, vol * 0.4, 0);
 
-  // 汪 — 第一声（低沉起音）
-  tone(320, 0.1, "sawtooth", vol * 0.7, 0, 180);
-  noiseBurst(0.06, vol * 0.35, 0);
+  tone(260, 0.13, "triangle", vol * 0.9, 0.1, 190);
+  noiseBurst(0.06, vol * 0.3, 0.1);
 
-  // 汪 — 第二声
-  tone(280, 0.12, "triangle", vol * 0.85, 0.09, 200);
-  noiseBurst(0.05, vol * 0.25, 0.09);
-
-  // 第三声（happy/loud 才有尾音，更像「汪汪~」）
   if (variant !== "short") {
-    tone(360, 0.14, "sine", vol * 0.6, 0.2, 240);
-    noiseBurst(0.04, vol * 0.2, 0.2);
+    tone(340, 0.15, "sine", vol * 0.65, 0.22, 230);
+    noiseBurst(0.05, vol * 0.22, 0.22);
   }
-
-  tryHowl("/sounds/bark.mp3", { volume: vol });
 }
 
 function tryHowl(src: string, opts?: { volume?: number }) {
   if (muted) return;
   try {
-    const h = new Howl({ src: [src], volume: opts?.volume ?? 0.45, html5: true });
+    const base = typeof window !== "undefined" ? window.location.pathname.replace(/\/$/, "") : "";
+    const prefix = base.endsWith("/520") || base === "/520" ? "/520" : "";
+    const h = new Howl({
+      src: [`${prefix}${src}`],
+      volume: opts?.volume ?? 0.5,
+      html5: true,
+    });
     h.play();
   } catch {
-    /* 使用合成音 */
+    /* 合成音兜底 */
   }
 }
 
@@ -108,52 +123,60 @@ export const sfx = {
     muted = m;
   },
 
-  /** 轻触反馈 — 短汪 */
-  pop: () => playWang("short"),
-
-  /** 收集爱心 — 叮 + 短汪 */
-  ding: () => {
-    tone(880, 0.08, "sine", 0.12);
-    setTimeout(() => tone(1320, 0.1, "sine", 0.1), 60);
-    setTimeout(() => playWang("short"), 100);
-  },
-
-  /** 小狗叫 — 汪汪 */
-  bark: () => playWang("happy"),
-
-  /** 爱心爆炸 — 汪 + 啵 */
-  heartBurst: () => {
-    playWang("happy");
-    tone(520, 0.06, "sine", 0.1, 0.15);
-    tone(780, 0.08, "sine", 0.08, 0.22);
-  },
-
-  /** 抱抱 — 轻柔汪 + 心跳 */
-  heartbeat: () => {
+  pop: () => {
+    unlockAudio();
     playWang("short");
-    tone(72, 0.12, "sine", 0.22, 0.1);
-    setTimeout(() => tone(72, 0.1, "sine", 0.18, 0.35), 280);
   },
 
-  /** 告白「汪！」— 响亮汪 */
-  wang: () => playWang("loud"),
+  ding: () => {
+    unlockAudio();
+    tone(880, 0.08, "sine", 0.14);
+    tone(1320, 0.1, "sine", 0.1, 0.07);
+    playWang("short");
+  },
+
+  bark: () => {
+    unlockAudio();
+    playWang("happy");
+  },
+
+  heartBurst: () => {
+    unlockAudio();
+    playWang("happy");
+    tone(520, 0.06, "sine", 0.1, 0.12);
+  },
+
+  heartbeat: () => {
+    unlockAudio();
+    playWang("short");
+    tone(72, 0.12, "sine", 0.24, 0.08);
+    tone(72, 0.1, "sine", 0.2, 0.32);
+  },
+
+  wang: () => {
+    unlockAudio();
+    playWang("loud");
+  },
 
   bgm: null as Howl | null,
 
   playBgm: () => {
-    if (muted || typeof window === "undefined") return;
+    if (muted) return;
+    unlockAudio();
     try {
+      const base = typeof window !== "undefined" ? window.location.pathname.replace(/\/$/, "") : "";
+      const prefix = base.endsWith("/520") || base === "/520" ? "/520" : "";
       if (!sfx.bgm) {
         sfx.bgm = new Howl({
-          src: ["/sounds/bgm.mp3"],
+          src: [`${prefix}/sounds/bgm.mp3`],
           loop: true,
-          volume: 0.2,
+          volume: 0.18,
           html5: true,
         });
       }
       if (!sfx.bgm.playing()) void sfx.bgm.play();
     } catch {
-      /* 无 BGM 文件时静默 */
+      /* ignore */
     }
   },
 

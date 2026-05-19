@@ -60,8 +60,10 @@ export function HugScreen() {
           <PinkButton onClick={startHug} className="w-full">
             抱抱小狗 ❤️
           </PinkButton>
-          <p className="mt-4 text-center text-xs text-brown-text/50">
+          <p className="mt-4 text-center text-xs leading-relaxed text-brown-text/60">
             点击后小狗会抱紧你喔
+            <br />
+            <span className="text-heart-red">抱抱完成 → 彩蛋页连点小狗 5 次</span>
           </p>
         </motion.div>
       ) : (

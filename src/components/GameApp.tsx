@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { AudioUnlock } from "@/components/AudioUnlock";
+import { VersionBadge } from "@/components/VersionBadge";
 import { ConfessionScreen } from "@/components/screens/ConfessionScreen";
 import { EasterEggScreen } from "@/components/screens/EasterEggScreen";
 import { GameScreen } from "@/components/screens/GameScreen";
@@ -27,8 +29,10 @@ export function GameApp() {
   const Screen = screens[screen];
 
   return (
-    <div className="phone-frame">
+    <div className="phone-frame relative">
+      <AudioUnlock />
       <AudioPlayer />
+      <VersionBadge />
       <AnimatePresence mode="wait">
         <motion.div
           key={screen}

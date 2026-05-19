@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
-import { sfx } from "@/lib/sfx";
+import { sfx, unlockAudio } from "@/lib/sfx";
 
 interface PinkButtonProps {
   children: ReactNode;
@@ -17,6 +17,7 @@ export function PinkButton({ children, onClick, className = "", disabled = false
       type="button"
       disabled={disabled}
       onClick={() => {
+        unlockAudio();
         sfx.pop();
         onClick?.();
       }}
