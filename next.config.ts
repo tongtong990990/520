@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
   images: { unoptimized: true },
-  generateBuildId: async () => `v220-${Date.now()}`,
+  generateBuildId: async () =>
+    process.env.NEXT_PUBLIC_BUILD_ID?.slice(0, 7) ?? `build-${Date.now()}`,
   ...(isGitHubPages
     ? {
         basePath: "/520",

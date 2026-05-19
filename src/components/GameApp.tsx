@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { AudioUnlock } from "@/components/AudioUnlock";
+import { UpdateChecker } from "@/components/UpdateChecker";
 import { VersionBadge } from "@/components/VersionBadge";
 import { ConfessionScreen } from "@/components/screens/ConfessionScreen";
 import { EasterEggScreen } from "@/components/screens/EasterEggScreen";
@@ -40,6 +41,7 @@ export function GameApp() {
 
   return (
     <div className="phone-frame relative">
+      <UpdateChecker />
       <AudioUnlock />
       <AudioPlayer />
       <VersionBadge />

@@ -36,13 +36,15 @@ export function OpeningScreen() {
       <SoftGlow />
       <FloatingHearts count={14} />
 
-      <motion.span
-        className="absolute left-3 top-12 z-20 rounded-full bg-heart-red px-2 py-0.5 text-[10px] font-bold text-white"
-        animate={{ scale: [1, 1.05, 1] }}
+      <motion.div
+        className="absolute left-0 right-0 top-11 z-20 mx-4 rounded-xl bg-gradient-to-r from-orange-400 to-heart-red px-3 py-1.5 text-center shadow-md"
+        animate={{ scale: [1, 1.02, 1] }}
         transition={{ repeat: Infinity, duration: 2 }}
       >
-        最新 v{APP_VERSION}
-      </motion.span>
+        <p className="text-[11px] font-bold text-white">
+          ✨ 最新版 v{APP_VERSION} · 含隐藏彩蛋
+        </p>
+      </motion.div>
 
       {[0, 1, 2].map((i) => (
         <motion.div
