@@ -122,9 +122,33 @@ export function ConfessionScreen() {
         />
       </motion.div>
 
-      <div className="pointer-events-none relative z-10 flex justify-center pb-0">
-        <Puppy size={120} className="-mb-10" action={puppyAction} />
-      </div>
+      <div className="pointer-events-none relative z-20 flex flex-col items-center justify-end pb-2 pt-2">
+        <AnimatePresence>
+          {showPuppyBubble && (
+            <motion.div
+              className="relative mb-2 max-w-[220px]"
+              initial={{ opacity: 0, y: 12, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 280, damping: 22 }}
+            >
+              <motion.div
+                className="rounded-2xl border-2 border-pink-main/40 bg-cream-white px-5 py-3 text-center shadow-lg"
+                animate={{ scale: [1, 1.03, 1] }}
+                transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
+              >
+                <p className="font-display text-base leading-snug text-heart-red">
+                  不许抛弃小狗 🥺
+                </p>
+              </motion.div>
+              <motion.div
+                className="absolute -bottom-2 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-pink-main/30 bg-cream-white"
+                aria-hidden
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <Puppy size={130} className="-mb-6" action={puppyAction} />
+      </motion.div>
     </motion.div>
   );
 }
