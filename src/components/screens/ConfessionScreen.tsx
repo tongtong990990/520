@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { FloatingHearts } from "@/components/FloatingHearts";
 import { PinkButton } from "@/components/PinkButton";
@@ -27,13 +27,18 @@ export function ConfessionScreen() {
   const puppyAction = useGameStore((s) => s.puppyAction);
   const [phase, setPhase] = useState<"gift" | "text">("gift");
   const [showSkip, setShowSkip] = useState(true);
+  const [showPuppyBubble, setShowPuppyBubble] = useState(false);
 
   const handleLine = (index: number) => {
     if (LINES[index] === "汪！🐶") {
       sfx.wang();
       vibrate([50, 30, 50]);
       setPuppyAction("jump");
+      setShowPuppyBubble(true);
       setTimeout(() => setPuppyAction("idle"), 600);
+    }
+    if (index === LINES.length - 1) {
+      setShowPuppyBubble(true);
     }
   };
 
