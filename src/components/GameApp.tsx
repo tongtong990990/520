@@ -1,0 +1,43 @@
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import { AudioPlayer } from "@/components/AudioPlayer";
+import { ConfessionScreen } from "@/components/screens/ConfessionScreen";
+import { EasterEggScreen } from "@/components/screens/EasterEggScreen";
+import { GameScreen } from "@/components/screens/GameScreen";
+import { GameSuccessScreen } from "@/components/screens/GameSuccessScreen";
+import { HugScreen } from "@/components/screens/HugScreen";
+import { InteractionScreen } from "@/components/screens/InteractionScreen";
+import { OpeningScreen } from "@/components/screens/OpeningScreen";
+import { heartPageTransition } from "@/lib/animations";
+import { useGameStore, type ScreenId } from "@/store/gameStore";
+
+const screens: Record<ScreenId, React.ComponentType> = {
+  opening: OpeningScreen,
+  interaction: InteractionScreen,
+  game: GameScreen,
+  "game-success": GameSuccessScreen,
+  confession: ConfessionScreen,
+  hug: HugScreen,
+  "easter-egg": EasterEggScreen,
+};
+
+export function GameApp() {
+  const screen = useGameStore((s) => s.screen);
+  const Screen = screens[screen];
+
+  return (
+    <div className="phone-frame">
+      <AudioPlayer />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={screen}
+          className="absolute inset-0 flex flex-col"
+          {...heartPageTransition}
+        >
+          <Screen />
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
