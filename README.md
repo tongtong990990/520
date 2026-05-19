@@ -49,11 +49,19 @@ src/
 
 将 mp3 放入 `public/sounds/`，详见该目录 README。未放置时使用内置合成音。
 
+## 在线访问（手机 / 微信）
+
+**GitHub Pages：** https://tongtong990990.github.io/520/
+
+仓库：https://github.com/tongtong990990/520
+
+> 首次推送后请在 GitHub 仓库 **Settings → Pages → Build and deployment** 选择 **GitHub Actions**，约 2 分钟生效。
+
 ## 部署
 
+**Vercel（推荐，根路径访问）：** 打开 [vercel.com](https://vercel.com) → Import `tongtong990990/520` → Deploy。
+
 ```bash
-npm run build
+npm run build   # 本地预览需去掉 GITHUB_PAGES 环境变量
 npm start
 ```
-
-推荐部署至 [Vercel](https://vercel.com)。
