@@ -30,7 +30,7 @@ export function ConfessionScreen() {
 
   const handleLine = (index: number) => {
     if (LINES[index] === "汪！🐶") {
-      sfx.bark();
+      sfx.wang();
       vibrate([50, 30, 50]);
       setPuppyAction("jump");
       setTimeout(() => setPuppyAction("idle"), 600);
